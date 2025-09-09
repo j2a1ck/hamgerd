@@ -32,7 +32,7 @@ export default function EventRegisterCard({
         </div>
         <Button
           size="lg"
-          className={`w-full ${startDateObj < new Date() ? "bg- bg-primary cursor-not-allowed text-white" : ""}`}
+          className={`w-full ${startDateObj < new Date() ? "bg-primary cursor-not-allowed text-white" : ""}`}
           disabled={startDateObj < new Date()}
           onClick={onRegister}
         >

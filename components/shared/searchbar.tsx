@@ -1,6 +1,8 @@
+"use client";
+
 import { Search } from "lucide-react";
-import { redirect } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios";
@@ -22,6 +24,7 @@ interface OrganizationResult {
   name: string;
   title: string;
 }
+
 function useOutsideClick<T extends HTMLElement>(handler: () => void) {
   const ref = useRef<T>(null);
 
@@ -41,25 +44,34 @@ function useOutsideClick<T extends HTMLElement>(handler: () => void) {
 }
 
 export default function Searchbar({ type }: SearchbarProp) {
+  const router = useRouter();
   const [inputValue, setInputValue] = useState("");
   const [results, setResults] = useState<(EventResult | OrganizationResult)[]>([]);
-  const containerRef = useOutsideClick<HTMLDivElement>(() => {
-    setResults([]);
-  });
+  const containerRef = useOutsideClick<HTMLDivElement>(() => setResults([]));
 
   const queryParamKey = type === "organization" ? "name" : "title";
-  const handleSearch = async (value: string) => {
-    try {
-      const res = await api.get(`api/v1/${type}/`, {
-        params: {
-          [queryParamKey]: value,
-        },
-      });
-      setResults(res.data?.results || []);
-    } catch (err) {
-      console.error(`Search failed for ${type}:`, err);
-    }
-  };
+
+  const handleSearch = useCallback(
+    async (value: string) => {
+      if (!value) return setResults([]);
+      try {
+        const res = await api.get(`/api/v1/${type}/`, {
+          params: { [queryParamKey]: value },
+        });
+        setResults(res.data?.results || []);
+      } catch (err) {
+        console.error(`Search failed for ${type}:`, err);
+      }
+    },
+    [type, queryParamKey]
+  );
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      handleSearch(inputValue);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [inputValue, handleSearch]);
 
   return (
     <div className="relative mb-10 md:col-span-2">
@@ -68,11 +80,7 @@ export default function Searchbar({ type }: SearchbarProp) {
         <Input
           className="pr-10"
           value={inputValue}
-          onChange={e => {
-            const value = e.target.value;
-            setInputValue(value);
-            handleSearch(value);
-          }}
+          onChange={e => setInputValue(e.target.value)}
           placeholder={`جستجوی ${type === "organization" ? "سازمان" : "رویداد"}...`}
         />
       </div>
@@ -82,26 +90,22 @@ export default function Searchbar({ type }: SearchbarProp) {
           className="bg-background absolute z-10 mt-2 w-full rounded-md border shadow-sm"
           ref={containerRef}
         >
-          {results.map(item => (
-            <div
-              className="hover:bg-card cursor-pointer px-4 py-2"
-              key={item.public_id}
-              onClick={() =>
-                redirect(
-                  `${type === "organization" ? "organizations" : "events"}/${type === "organization" ? item.username : item.public_id}`
-                )
-              }
-              onKeyDown={e => {
-                if (e.key === "Enter" || e.key === " ") {
-                  redirect(
-                    `${type === "organization" ? "organizations" : "events"}/${type === "organization" ? item.username : item.public_id}`
-                  );
-                }
-              }}
-            >
-              {type === "organization" ? item.name : item.title}
-            </div>
-          ))}
+          {results.map(item => {
+            const url =
+              type === "organization"
+                ? `/organizations/${item.username}`
+                : `/events/${item.public_id}`;
+            return (
+              // eslint-disable-next-line @eslint-react/dom/no-missing-button-type
+              <button
+                className="hover:bg-card w-full cursor-pointer px-4 py-2 text-left"
+                key={item.public_id}
+                onClick={() => router.push(url)}
+              >
+                {type === "organization" ? item.name : item.title}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

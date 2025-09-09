@@ -23,8 +23,8 @@ const navMain1 = [
 ];
 
 const navMain2 = [
-  { title: "رویداد", url: "/dashboard/events", icon: Users },
-  { title: "سازمان", url: "/dashboard/organizations", icon: Building2 },
+  { title: "رویداد های من", url: "/dashboard/events", icon: Users },
+  { title: "سازمان من", url: "/dashboard/organizations", icon: Building2 },
 ];
 
 const navMain3 = [
